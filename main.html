@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Automatic Faculty Timetable Creator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+    <h2 class="mb-4 text-center">Automatic Faculty Timetable Creator</h2>
+    <form id="timetableForm" class="mb-4">
+        <div class="row mb-2">
+            <div class="col">
+                <input type="text" class="form-control" id="faculty" placeholder="Theory Faculty Name" required>
+            </div>
+            <div class="col">
+                <input type="text" class="form-control" id="subject" placeholder="Theory Subject" required>
+            </div>
+            <div class="col">
+                <input type="number" class="form-control" id="hours" placeholder="Theory Hours/Week" min="1" max="10" required>
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-primary w-100" onclick="addFaculty()">Add Faculty</button>
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col">
+                <input type="text" class="form-control" id="labFaculty" placeholder="Lab Faculty Name">
+            </div>
+            <div class="col">
+                <input type="text" class="form-control" id="labSubject" placeholder="Lab Subject">
+            </div>
+            <div class="col">
+                <input type="number" class="form-control" id="labHours" placeholder="Lab Hours/Week" min="1" max="10">
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-success w-100" onclick="addLab()">Add Lab</button>
+            </div>
+        </div>
+    </form>
+    <div class="mb-3">
+        <label for="excelFile" class="form-label">Upload Faculty Excel (.xlsx):</label>
+        <input type="file" class="form-control" id="excelFile" accept=".xlsx,.xls">
+        <div class="form-text">Columns: <b>Faculty Name</b>, <b>Subject</b>, <b>Hours/Week</b></div>
+    </div>
+    <div id="facultyList" class="mb-4"></div>
+    <button class="btn btn-success mb-4" onclick="generateTimetable()">Generate Timetable</button>
+    <div class="mb-2">
+        <button class="btn btn-warning" onclick="shuffleFaculties()">Shuffle Faculty</button>
+    </div>
+    <div id="timetableResult"></div>
+</div>
+<script>
+    const faculties = [];
+    // 6 days (Day 1 to Day 6)
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    // 7 periods per day, with break after 2nd and 4th period
+    const periods = ["1", "2", "Break", "3", "4", "Break", "5", "6", "7"];
+
+    document.getElementById('excelFile').addEventListener('change', handleExcelUpload);
+
+    function handleExcelUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            const data = new Uint8Array(evt.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+            faculties.length = 0; // Clear existing
+            for (let i = 1; i < json.length; i++) {
+                const row = json[i];
+                if (row && row[0] && row[1] && row[2]) {
+                    faculties.push({
+                        faculty: String(row[0]).trim(),
+                        subject: String(row[1]).trim(),
+                        hours: parseInt(row[2], 10)
+                    });
+                }
+            }
+            renderFacultyList();
+            generateTimetable();
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function addFaculty() {
+        const faculty = document.getElementById('faculty').value.trim();
+        const subject = document.getElementById('subject').value.trim();
+        const hours = parseInt(document.getElementById('hours').value, 10);
+
+        if (faculty && subject && hours > 0) {
+            faculties.push({ faculty, subject, hours });
+            document.getElementById('faculty').value = '';
+            document.getElementById('subject').value = '';
+            document.getElementById('hours').value = '';
+            renderFacultyList();
+        }
+    }
+
+    function addLab() {
+        const faculty = document.getElementById('labFaculty').value.trim();
+        const subject = document.getElementById('labSubject').value.trim();
+        const hours = parseInt(document.getElementById('labHours').value, 10);
+
+        if (faculty && subject && hours > 0) {
+            faculties.push({ faculty, subject, hours, isLab: true });
+            document.getElementById('labFaculty').value = '';
+            document.getElementById('labSubject').value = '';
+            document.getElementById('labHours').value = '';
+            renderFacultyList();
+        }
+    }
+
+    function removeFaculty(index) {
+        faculties.splice(index, 1);
+        renderFacultyList();
+    }
+
+    function shuffleFaculties() {
+        for (let i = faculties.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [faculties[i], faculties[j]] = [faculties[j], faculties[i]];
+        }
+        renderFacultyList();
+    }
+
+    function generateTimetable() {
+        const periodTimes = [
+            "9.15-10.10", "10.10-11.05", "11.05-11.15", "11.15-12.05",
+            "12.05-1.00", "1.00-2.00", "2.00-2.55", "2.55-3.40", "3.40-4.30"
+        ];
+
+        // Create empty timetable
+        let timetable = {};
+        days.forEach((day, idx) => {
+            timetable[`DAY ${idx+1}`] = Array(periods.length).fill("");
+        });
+
+        // Insert breaks after 2nd and 4th period
+        days.forEach((day, dIdx) => {
+            timetable[`DAY ${dIdx+1}`][2] = "Break"; // After 2nd period
+            timetable[`DAY ${dIdx+1}`][5] = "Break"; // After 4th period
+        });
+
+        // Fill only the given count of each subject/lab
+        faculties.forEach(fac => {
+            let hoursToAssign = fac.hours;
+            if (fac.isLab) {
+                // Assign labs: continuous, must start at 1st or 5th period, and fill required hours
+                let labAssigned = false;
+                for (let d = 0; d < days.length && !labAssigned; d++) {
+                    for (let startIdx of [0, 6]) {
+                        let needed = fac.hours;
+                        let canAssign = true;
+                        let indices = [];
+                        let idx = startIdx;
+                        while (needed > 0 && idx < periods.length) {
+                            if (periods[idx] === "Break") {
+                                idx++;
+                                continue;
+                            }
+                            if (timetable[`DAY ${d+1}`][idx]) {
+                                canAssign = false;
+                                break;
+                            }
+                            indices.push(idx);
+                            idx++;
+                            needed--;
+                        }
+                        if (canAssign && indices.length === fac.hours) {
+                            indices.forEach(i => {
+                                timetable[`DAY ${d+1}`][i] = fac.subject + " (Lab)";
+                            });
+                            labAssigned = true;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // Assign theory: distribute hours so the faculty has class every day (if possible), never consecutive, and not same period each day
+                let daysAvailable = days.length;
+                let perDay = Math.floor(fac.hours / daysAvailable);
+                let extra = fac.hours % daysAvailable;
+                let assigned = 0;
+                // For each day, shuffle period indices to randomize period allocation
+                for (let d = 0; d < days.length; d++) {
+                    let toAssign = perDay + (extra > 0 ? 1 : 0);
+                    if (extra > 0) extra--;
+                    let assignedToday = 0;
+                    // Get available period indices (excluding breaks)
+                    let periodIndices = [];
+                    for (let p = 0; p < periods.length; p++) {
+                        if (periods[p] !== "Break") periodIndices.push(p);
+                    }
+                    // Shuffle period indices for randomness
+                    for (let i = periodIndices.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [periodIndices[i], periodIndices[j]] = [periodIndices[j], periodIndices[i]];
+                    }
+                    for (let idx = 0; idx < periodIndices.length && assignedToday < toAssign; idx++) {
+                        let p = periodIndices[idx];
+                        // No consecutive
+                        if (
+                            !timetable[`DAY ${d+1}`][p] &&
+                            (p === 0 || timetable[`DAY ${d+1}`][p - 1] !== fac.subject) &&
+                            (p === periods.length - 1 || timetable[`DAY ${d+1}`][p + 1] !== fac.subject)
+                        ) {
+                            // Also, avoid assigning the same period as previous days for this faculty
+                            let samePeriodOtherDay = false;
+                            for (let prevDay = 1; prevDay <= days.length; prevDay++) {
+                                if (prevDay !== d + 1 && timetable[`DAY ${prevDay}`][p] === fac.subject) {
+                                    samePeriodOtherDay = true;
+                                    break;
+                                }
+                            }
+                            if (samePeriodOtherDay) continue;
+                            timetable[`DAY ${d+1}`][p] = fac.subject;
+                            assigned++;
+                            assignedToday++;
+                            if (assigned === fac.hours) break;
+                        }
+                    }
+                }
+            }
+        });
+
+        // Collect only faculties who have at least one hour assigned in the timetable
+        const assignedSubjects = new Set();
+        Object.values(timetable).forEach(row => {
+            row.forEach(cell => {
+                if (cell && cell !== "Break") assignedSubjects.add(cell.replace("", ""));
+            });
+        });
+        const assignedFaculties = faculties.filter(fac => assignedSubjects.has(fac.subject));
+
+        // Render timetable
+        let html = `
+        <table class="table table-bordered timetable-table shadow-sm" style="width:auto;min-width:900px;">
+            <thead>
+                <tr>
+                    <th rowspan="2">DAYS/TIME</th>
+                    <th>1</th><th>2</th><th></th><th>3</th><th>4</th><th></th><th>5</th><th>6</th><th>7</th>
+                </tr>
+                <tr>
+                    <th>9.15-10.10</th>
+                    <th>10.10-11.05</th>
+                    <th>11.05-11.15</th>
+                    <th>11.15-12.05</th>
+                    <th>12.05-1.00</th>
+                    <th>1.00-2.00</th>
+                    <th>2.00-2.55</th>
+                    <th>2.55-3.40</th>
+                    <th>3.40-4.30</th>
+                </tr>
+                <tr>
+                    <th></th>
+                    <th>AM</th>
+                    <th>AM</th>
+                    <th></th>
+                    <th>AM</th>
+                    <th>AM</th>
+                    <th></th>
+                    <th>PM</th>
+                    <th>PM</th>
+                    <th>PM</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+        Object.keys(timetable).forEach(day => {
+            html += `<tr><th>${day}</th>`;
+            timetable[day].forEach((cell, idx) => {
+                if (periods[idx] === "Break") {
+                    html += `<td style="background:#ffeeba;color:#856404;font-weight:bold;">Break</td>`;
+                } else {
+                    html += `<td>${cell || ""}</td>`;
+                }
+            });
+            html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+
+        // Faculty legend: only those who have at least one hour in the timetable
+        html += `<div style="margin-top:24px;"><b>Subject - Faculty Mapping (Assigned This Week)</b>
+        <table class="table table-bordered" style="width:auto;min-width:400px;">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Faculty Name</th>
+                    <th>Type</th>
+                    <th>Periods Allocated</th>
+                </tr>
+            </thead>
+            <tbody>`;
+        assignedFaculties.forEach(fac => {
+            // Count periods allocated for this subject (including lab/theory distinction)
+            let subjectLabel = fac.subject + (fac.isLab ? " (Lab)" : "");
+            let periodCount = 0;
+            Object.values(timetable).forEach(row => {
+                row.forEach(cell => {
+                    if (cell === subjectLabel) periodCount++;
+                });
+            });
+            html += `<tr>
+                        <td>${fac.subject}${fac.isLab ? " (Lab)" : ""}</td>
+                        <td>${fac.faculty}</td>
+                        <td>${fac.isLab ? "Lab" : "Theory"}</td>
+                        <td>${periodCount}</td>
+                    </tr>`;
+        });
+        html += `</tbody></table></div>`;
+
+        document.getElementById('timetableResult').innerHTML = html;
+
+        // Add Download Timetable button
+        const downloadBtn = document.createElement('button');
+        downloadBtn.textContent = "Download Timetable (Excel)";
+        downloadBtn.className = "btn btn-outline-secondary mt-3";
+        downloadBtn.onclick = downloadTimetableExcel;
+        document.getElementById('timetableResult').appendChild(downloadBtn);
+    }
+
+    // Download timetable as Excel file
+    function downloadTimetableExcel() {
+        // Prepare data for Excel
+        const table = document.querySelector('.timetable-table');
+        if (!table) return;
+        let wb = XLSX.utils.book_new();
+        let ws = XLSX.utils.table_to_sheet(table);
+
+        // Prepare faculty mapping data
+        const mappingTable = document.querySelector('#timetableResult table.table-bordered:nth-of-type(2)');
+        if (mappingTable) {
+            let ws2 = XLSX.utils.table_to_sheet(mappingTable);
+            XLSX.utils.book_append_sheet(wb, ws2, "Faculty Mapping");
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, "Timetable");
+        XLSX.writeFile(wb, "timetable.xlsx");
+    }
+
+    function downloadCSV() {
+        let csv = "Day/Period," + periods.join(",") + "\n";
+        days.forEach(day => {
+            let row = [day];
+            let table = document.querySelector('.timetable-table');
+            let dayRow = Array.from(table.rows).find(r => r.cells[0] && r.cells[0].innerText === day);
+            if (dayRow) {
+                for (let i = 1; i < dayRow.cells.length; i++) {
+                    row.push(dayRow.cells[i].innerText.replace(/\n/g, ' '));
+                }
+            }
+            csv += row.join(",") + "\n";
+        });
+        let blob = new Blob([csv], { type: 'text/csv' });
+        let link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "timetable.csv";
+        link.click();
+    }
+
+    function renderFacultyList() {
+        let html = '<div class="faculty-header">Faculty Assignments:</div><ul class="list-group">';
+        faculties.forEach((f, i) => {
+            html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>${f.faculty} - <span style="color:#2a5298;font-weight:600">${f.subject}</span> 
+                        <span class="badge bg-info text-dark ms-2">${f.hours} hrs/week${f.isLab ? ' (Lab)' : ''}</span></span>
+                        <button class="btn btn-sm btn-danger" onclick="removeFaculty(${i})">Remove</button>
+                    </li>`;
+        });
+        html += '</ul>';
+        document.getElementById('facultyList').innerHTML = html;
+    }
+</script>
+</body>
+</html>
