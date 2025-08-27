@@ -64,4 +64,4 @@ This project is a web-based application for **automatic timetable generation** f
 
 ## Contact
 
-For
+For doubts (saranramesh709@gmail.com)
