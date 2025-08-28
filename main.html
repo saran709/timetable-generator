@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<div class="container">
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -9,49 +9,235 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="container">
+<div class="container py-4"></div>
     <h2 class="mb-4 text-center">Automatic Faculty Timetable Creator</h2>
-    <form id="timetableForm" class="mb-4">
-        <div class="row mb-2">
-            <div class="col">
-                <input type="text" class="form-control" id="faculty" placeholder="Theory Faculty Name" required>
-            </div>
-            <div class="col">
-                <input type="text" class="form-control" id="subject" placeholder="Theory Subject" required>
-            </div>
-            <div class="col">
-                <input type="number" class="form-control" id="hours" placeholder="Theory Hours/Week" min="1" max="10" required>
-            </div>
-            <div class="col">
-                <button type="button" class="btn btn-primary w-100" onclick="addFaculty()">Add Faculty</button>
+    <!-- Department, Year, Semester Info -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="department" class="form-label">Department</label>
+                    <select class="form-select" id="department" required>
+                        <option value="" disabled selected>Select Department</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Information Technology">Information Technology</option>
+                        <option value="Electronics and Communication">Electronics and Communication</option>
+                        <option value="Electrical and Electronics">Electrical and Electronics</option>
+                        <option value="Mechanical Engineering">Mechanical Engineering</option>
+                        <option value="Civil Engineering">Civil Engineering</option>
+                        <option value="Chemical Engineering">Chemical Engineering</option>
+                        <option value="Biomedical Engineering">Biomedical Engineering</option>
+                        <option value="Artificial Intelligence">Artificial Intelligence</option>
+                        <option value="Data Science">Data Science</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Year</label>
+                    <select class="form-select" id="year" required onchange="updateSemesterOptions()">
+                        <option value="" disabled selected>Select Year</option>
+                        <option value="I Year">I Year</option>
+                        <option value="II Year">II Year</option>
+                        <option value="III Year">III Year</option>
+                        <option value="IV Year">IV Year</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="semester" class="form-label">Semester</label>
+                    <select class="form-select" id="semester" required>
+                        <option value="" disabled selected>Select Semester</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="classSection" class="form-label">Section</label>
+                    <select class="form-select" id="classSection" required>
+                        <option value="" disabled selected>Select Section</option>
+                        <option value="Section A">Section A</option>
+                        <option value="Section B">Section B</option>
+                        <option value="Section C">Section C</option>
+                        <option value="Section D">Section D</option>
+                    </select>
+                </div>
             </div>
         </div>
-        <div class="row mb-2">
-            <div class="col">
-                <input type="text" class="form-control" id="labFaculty" placeholder="Lab Faculty Name">
-            </div>
-            <div class="col">
-                <input type="text" class="form-control" id="labSubject" placeholder="Lab Subject">
-            </div>
-            <div class="col">
-                <input type="number" class="form-control" id="labHours" placeholder="Lab Hours/Week" min="1" max="10">
-            </div>
-            <div class="col">
-                <button type="button" class="btn btn-success w-100" onclick="addLab()">Add Lab</button>
-            </div>
-        </div>
-    </form>
-    <div class="mb-3">
-        <label for="excelFile" class="form-label">Upload Faculty Excel (.xlsx):</label>
-        <input type="file" class="form-control" id="excelFile" accept=".xlsx,.xls">
-        <div class="form-text">Columns: <b>Faculty Name</b>, <b>Subject</b>, <b>Hours/Week</b></div>
     </div>
-    <div id="facultyList" class="mb-4"></div>
-    <button class="btn btn-success mb-4" onclick="generateTimetable()">Generate Timetable</button>
-    <div class="mb-2">
-        <button class="btn btn-warning" onclick="shuffleFaculties()">Shuffle Faculty</button>
+    <script>
+        function updateSemesterOptions() {
+            const year = document.getElementById('year').value;
+            const semester = document.getElementById('semester');
+            let options = '<option value="" disabled selected>Select Semester</option>';
+            if (year === "I Year") {
+                options += '<option value="I Semester">I Semester</option>';
+                options += '<option value="II Semester">II Semester</option>';
+            } else if (year === "II Year") {
+                options += '<option value="III Semester">III Semester</option>';
+                options += '<option value="IV Semester">IV Semester</option>';
+            } else if (year === "III Year") {
+                options += '<option value="V Semester">V Semester</option>';
+                options += '<option value="VI Semester">VI Semester</option>';
+            } else if (year === "IV Year") {
+                options += '<option value="VII Semester">VII Semester</option>';
+                options += '<option value="VIII Semester">VIII Semester</option>';
+            }
+            semester.innerHTML = options;
+        }
+    </script>
+    <div class="row g-4 mb-4">
+        <!-- Theory Faculty Assignment -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white">Add Theory Faculty</div>
+                <div class="card-body">
+                    <form id="timetableForm">
+                        <div class="mb-3">
+                            <label for="faculty" class="form-label">Faculty Name</label>
+                            <select class="form-select" id="faculty" required>
+                                <option value="" disabled selected>Select Theory Faculty Name</option>
+                                <option value="Dr. A. Kumar">Dr. A. Kumar</option>
+                                <option value="Prof. B. Sharma">Prof. B. Sharma</option>
+                                <option value="Ms. C. Patel">Ms. C. Patel</option>
+                                <option value="Mr. D. Singh">Mr. D. Singh</option>
+                                <option value="Dr. E. Reddy">Dr. E. Reddy</option>
+                                <option value="Mrs. F. Nair">Mrs. F. Nair</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject</label>
+                            <select class="form-select" id="subject" required>
+                                <option value="" disabled selected>Select Theory Subject</option>
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="Computer Programming">Computer Programming</option>
+                                <option value="Engineering Mechanics">Engineering Mechanics</option>
+                                <option value="English">English</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="hours" class="form-label">Hours/Week</label>
+                            <input type="number" class="form-control" id="hours" placeholder="Theory Hours/Week" min="1" max="10" required>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" onclick="addFaculty()">Add Faculty</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Lab Faculty Assignment -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-success text-white">Add Lab Faculty</div>
+                <div class="card-body">
+                    <form id="labForm"></form>
+                        <div class="mb-3">
+                            <label for="labFaculty" class="form-label">Lab Faculty Name</label>
+                            <select class="form-select" id="labFaculty" required>
+                                <option value="" disabled selected>Select Lab Faculty Name</option>
+                                <option value="Dr. A. Kumar">Dr. A. Kumar</option>
+                                <option value="Prof. B. Sharma">Prof. B. Sharma</option>
+                                <option value="Ms. C. Patel">Ms. C. Patel</option>
+                                <option value="Mr. D. Singh">Mr. D. Singh</option>
+                                <option value="Dr. E. Reddy">Dr. E. Reddy</option>
+                                <option value="Mrs. F. Nair">Mrs. F. Nair</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="labSubject" class="form-label">Lab Subject</label>
+                            <select class="form-select" id="labSubject" required>
+                                <option value="" disabled selected>Select Lab Subject</option>
+                                <option value="Physics Lab">Physics Lab</option>
+                                <option value="Chemistry Lab">Chemistry Lab</option>
+                                <option value="Programming Lab">Programming Lab</option>
+                                <option value="Engineering Workshop">Engineering Workshop</option>
+                                <option value="Electronics Lab">Electronics Lab</option>
+                                <option value="Mechanical Lab">Mechanical Lab</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="labHours" class="form-label">Lab Hours/Week</label>
+                            <input type="number" class="form-control" id="labHours" placeholder="Lab Hours/Week" min="1" max="10" required>
+                        </div>
+                        <button type="button" class="btn btn-success w-100" onclick="addLab()">Add Lab</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Faculty List and Upload -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-info text-dark">Faculty Assignments</div>
+                <div class="card-body">
+                    <div id="facultyList"></div>
+                    <button class="btn btn-warning mt-3" onclick="shuffleFaculties()">Shuffle Faculty</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-secondary text-white">Upload Faculty Excel</div>
+                <div class="card-body">
+                    <label for="excelFile" class="form-label">Upload Faculty Excel (.xlsx):</label>
+                    <input type="file" class="form-control mb-2" id="excelFile" accept=".xlsx,.xls">
+                    <div class="form-text mb-2">Columns: <b>Faculty Name</b>, <b>Subject</b>, <b>Hours/Week</b></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Generate Timetable Button (separate row) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <button class="btn btn-success w-100" onclick="generateTimetable()">Generate Timetable</button>
+            </div>
+        </div>
+                </div>
+            </div>
+        </div>
     </div>
     <div id="timetableResult"></div>
+    <script>
+        // Populate faculty dropdown from faculties array (unique names)
+        function updateFacultyDropdown() {
+            const facultySelect = document.getElementById('faculty');
+            if (!facultySelect) return;
+            // Get unique faculty names from faculties array
+            const facultyNames = [...new Set(faculties.map(f => f.faculty).filter(name => name))];
+            // Add default 6 names if not present
+            const defaultNames = [
+                "Dr. A. Kumar",
+                "Prof. B. Sharma",
+                "Ms. C. Patel",
+                "Mr. D. Singh",
+                "Dr. E. Reddy",
+                "Mrs. F. Nair"
+            ];
+            defaultNames.forEach(name => {
+                if (!facultyNames.includes(name)) facultyNames.push(name);
+            });
+            // Save current selection
+            const currentValue = facultySelect.value;
+            facultySelect.innerHTML = '<option value="" disabled selected>Select Theory Faculty Name</option>';
+            facultyNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                facultySelect.appendChild(option);
+            });
+            // Restore previous selection if possible
+            if (facultyNames.includes(currentValue)) {
+                facultySelect.value = currentValue;
+            }
+        }
+        // Update dropdown whenever faculties array changes
+        // Call after renderFacultyList, addFaculty, addLab, handleExcelUpload, shuffleFaculties, removeFaculty
+        const origRenderFacultyList = renderFacultyList;
+        renderFacultyList = function() {
+            origRenderFacultyList.apply(this, arguments);
+            updateFacultyDropdown();
+        };
+        // Initial call
+        document.addEventListener('DOMContentLoaded', updateFacultyDropdown);
+    </script>
 </div>
 <script>
     const faculties = [];
@@ -135,6 +321,12 @@
             "9.15-10.10", "10.10-11.05", "11.05-11.15", "11.15-12.05",
             "12.05-1.00", "1.00-2.00", "2.00-2.55", "2.55-3.40", "3.40-4.30"
         ];
+
+        // Get department, year, semester values
+        const department = document.getElementById('department').value || '';
+        const year = document.getElementById('year').value || '';
+        const semester = document.getElementById('semester').value || '';
+        const classSection = document.getElementById('classSection') ? document.getElementById('classSection').value : '';
 
         // Create empty timetable
         let timetable = {};
@@ -241,6 +433,12 @@
 
         // Render timetable
         let html = `
+        <div class="mb-3 text-center">
+            <strong>Department:</strong> ${department ? department : '<span style="color:#aaa;">Not specified</span>'} &nbsp; | &nbsp;
+            <strong>Year:</strong> ${year ? year : '<span style="color:#aaa;">Not specified</span>'} &nbsp; | &nbsp;
+            <strong>Semester:</strong> ${semester ? semester : '<span style="color:#aaa;">Not specified</span>'} &nbsp; | &nbsp;
+            <strong>Class:</strong> ${classSection ? classSection : '<span style="color:#aaa;">Not specified</span>'}
+        </div>
         <table class="table table-bordered timetable-table shadow-sm" style="width:auto;min-width:900px;">
             <thead>
                 <tr>
@@ -290,12 +488,14 @@
         html += `<div style="margin-top:24px;"><b>Subject - Faculty Mapping (Assigned This Week)</b>
         <table class="table table-bordered" style="width:auto;min-width:400px;">
             <thead>
-                <tr>
-                    <th>Subject</th>
-                    <th>Faculty Name</th>
-                    <th>Type</th>
-                    <th>Periods Allocated</th>
-                </tr>
+            <tr>
+                <th>Subject</th>
+                <th>Faculty Name</th>
+                <th>Type</th>
+                <th>Periods Allocated</th>
+                <th>Theory Details</th>
+                <th>Lab Details</th>
+            </tr>
             </thead>
             <tbody>`;
         assignedFaculties.forEach(fac => {
@@ -303,16 +503,21 @@
             let subjectLabel = fac.subject + (fac.isLab ? " (Lab)" : "");
             let periodCount = 0;
             Object.values(timetable).forEach(row => {
-                row.forEach(cell => {
-                    if (cell === subjectLabel) periodCount++;
-                });
+            row.forEach(cell => {
+                if (cell === subjectLabel) periodCount++;
             });
+            });
+            // Show theory/lab details
+            let theoryDetails = fac.isLab ? "" : `${fac.subject} (${fac.hours} hrs/week)`;
+            let labDetails = fac.isLab ? `${fac.subject} (${fac.hours} hrs/week)` : "";
             html += `<tr>
-                        <td>${fac.subject}${fac.isLab ? " (Lab)" : ""}</td>
-                        <td>${fac.faculty}</td>
-                        <td>${fac.isLab ? "Lab" : "Theory"}</td>
-                        <td>${periodCount}</td>
-                    </tr>`;
+                <td>${fac.subject}${fac.isLab ? " (Lab)" : ""}</td>
+                <td>${fac.faculty}</td>
+                <td>${fac.isLab ? "Lab" : "Theory"}</td>
+                <td>${periodCount}</td>
+                <td>${theoryDetails}</td>
+                <td>${labDetails}</td>
+                </tr>`;
         });
         html += `</tbody></table></div>`;
 
@@ -334,14 +539,31 @@
         let wb = XLSX.utils.book_new();
         let ws = XLSX.utils.table_to_sheet(table);
 
-        // Prepare faculty mapping data
+        // Add Timetable sheet first
+        XLSX.utils.book_append_sheet(wb, ws, "Timetable");
+
+        // Prepare faculty mapping data (second table in timetableResult)
         const mappingTable = document.querySelector('#timetableResult table.table-bordered:nth-of-type(2)');
         if (mappingTable) {
             let ws2 = XLSX.utils.table_to_sheet(mappingTable);
             XLSX.utils.book_append_sheet(wb, ws2, "Faculty Mapping");
         }
 
-        XLSX.utils.book_append_sheet(wb, ws, "Timetable");
+        // Add department, year, semester, class as a sheet
+        const department = document.getElementById('department').value || '';
+        const year = document.getElementById('year').value || '';
+        const semester = document.getElementById('semester').value || '';
+        const classSection = document.getElementById('classSection') ? document.getElementById('classSection').value : '';
+
+        const infoData = [
+            ["Department", department],
+            ["Year", year],
+            ["Semester", semester],
+            ["Class", classSection]
+        ];
+        let wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+        XLSX.utils.book_append_sheet(wb, wsInfo, "Class Info");
+
         XLSX.writeFile(wb, "timetable.xlsx");
     }
 
