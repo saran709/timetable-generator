@@ -22,7 +22,6 @@
                 <label for="password" class="form-label">Password</label>
                 <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
             </div>
-            <a href="#" class="forgot-link">Forgot password?</a>
             <div id="errorMsg" class="error-msg" style="display:none;"></div>
             <button type="submit" class="btn btn-primary w-100">Login</button>
         </form>
@@ -35,7 +34,7 @@
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             const errorMsg = document.getElementById('errorMsg');
-            if (username === "admin" && password === "admin123") {
+            if (username === "PECFACULTY" && password === "PEC123") {
                 // Redirect to timetable page
                 window.location.href = "main.html";
             } else {
