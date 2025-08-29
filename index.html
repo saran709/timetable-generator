@@ -23,7 +23,8 @@
                 <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
             </div>
             <div id="errorMsg" class="error-msg" style="display:none;"></div>
-            <button type="submit" class="btn btn-primary w-100">Login</button>
+            <button type="submit" class="btn btn-primary w-100 mb-2">Login</button>
+            <button type="button" class="btn btn-outline-secondary w-100" id="guestBtn">Login as Guest</button>
         </form>
     </div>
     <script>
@@ -41,6 +42,10 @@
                 errorMsg.textContent = "Invalid username or password.";
                 errorMsg.style.display = "block";
             }
+        });
+        document.getElementById('guestBtn').addEventListener('click', function() {
+            // Pass guest flag in URL
+            window.location.href = "main.html?guest=true";
         });
     </script>
 </body>
